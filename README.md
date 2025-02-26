@@ -156,15 +156,3 @@ To allow GitGet to clone repositories via SSH, follow these steps:
    ```
 
 Now you’re ready to use GitGet!
-```
-
----
-
-Below is the `requirements.txt` file:
-
-```txt
-aiofiles
-tqdm
-```
-
-These files together provide everything you need to install and use GitGet. Enjoy!
