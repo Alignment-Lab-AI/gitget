@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
 A script to clone a GitHub repository (via SSH URL) and produce a single Markdown file
-that concatenates the content of every file in the repo. Each file is preceded by a clearly
-delimited header showing its relative path in the repo.
+that concatenates the content of every file in the repo (only including files with certain extensions).
+Each file is preceded by a clearly delimited header showing its relative path in the repo.
 
 Usage:
     python3 gitget.py <github_repo_url>
 
 Example:
-    python3 gitget.py https://github.com/repo/name (or if aliased with start.sh, 'gitget https://github.com/repo/name')
+    python3 gitget.py https://github.com/repo/name
+    (or if aliased with start.sh, 'gitget https://github.com/repo/name')
 
 This will create a file named "name.md" in your current working directory.
 """
@@ -61,16 +62,20 @@ def clone_repository(ssh_url: str, dest_dir: str) -> None:
 def gather_files(root_dir: str) -> list:
     """
     Walks the directory tree under root_dir and returns a sorted list of (relative_path, full_path) tuples.
+    Only files with extensions in the allowed_ext set are included.
     The .git directory is ignored.
     """
+    allowed_ext = {'.txt', '.md', '.py', '.cpp', '.js'}  # extend this set as needed
     files_list = []
     for current_root, dirs, files in os.walk(root_dir):
         if ".git" in dirs:
             dirs.remove(".git")
         for file_name in files:
-            full_path = os.path.join(current_root, file_name)
-            rel_path = os.path.relpath(full_path, root_dir)
-            files_list.append((rel_path, full_path))
+            ext = os.path.splitext(file_name)[1].lower()
+            if ext in allowed_ext:
+                full_path = os.path.join(current_root, file_name)
+                rel_path = os.path.relpath(full_path, root_dir)
+                files_list.append((rel_path, full_path))
     files_list.sort(key=lambda x: x[0])
     return files_list
 
@@ -102,7 +107,7 @@ async def write_markdown_async(file_results, output_file: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Clone a GitHub repository and concatenate all its files into a Markdown file."
+        description="Clone a GitHub repository and concatenate selected files into a Markdown file."
     )
     parser.add_argument("repo_url", help="The GitHub repository URL (HTTPS) to clone.")
     args = parser.parse_args()
@@ -120,9 +125,9 @@ def main() -> None:
         clone_repository(ssh_url, repo_dir)
         print("[INFO] Repository cloned successfully.")
 
-        print("[INFO] Gathering files from the repository...")
+        print("[INFO] Gathering files from the repository (filtering by allowed extensions)...")
         files = gather_files(repo_dir)
-        print(f"[INFO] {len(files)} files found.")
+        print(f"[INFO] {len(files)} files found with allowed extensions.")
 
         print("[INFO] Reading file contents concurrently using multiprocessing with progress bar...")
         with Pool(cpu_count()) as pool:
